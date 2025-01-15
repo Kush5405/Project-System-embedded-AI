@@ -1,0 +1,8 @@
+google-generativeai
+SpeechRecognition
+pyttsx3
+pyautogui
+youtubesearchpython
+pytube
+psutil
+flask
