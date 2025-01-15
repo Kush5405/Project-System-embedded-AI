@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div id="chat-box"></div>
+        <input type="text" id="user-input" placeholder="Type your message...">
+        <button id="send-btn">Send</button>
+    </div>
+
+    <script>
+        const sendButton = document.getElementById("send-btn");
+        const userInput = document.getElementById("user-input");
+        const chatBox = document.getElementById("chat-box");
+
+        sendButton.addEventListener("click", async () => {
+            const message = userInput.value.trim();
+            if (message) {
+                // Add user message to chatbox
+                chatBox.innerHTML += `<div class="user-message">${message}</div>`;
+                userInput.value = "";
+
+                // Send message to the server
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: message }),
+                });
+
+                const data = await response.json();
+                // Add bot response to chatbox
+                chatBox.innerHTML += `<div class="bot-response">${data.response}</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll
+            }
+        });
+    </script>
+</body>
+</html>
