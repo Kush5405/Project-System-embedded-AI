@@ -10,6 +10,7 @@ import urllib.parse
 import pyautogui
 import platform
 import os
+from youtubesearchpython import VideosSearch
 from pytube import YouTube
 import psutil
 import time
@@ -22,6 +23,10 @@ model = genai.GenerativeModel("gemini-1.5-flash")
 # Initialize speech recognition and text-to-speech
 recognizer = sr.Recognizer()
 engine = pyttsx3.init()
+
+
+# File to store conversation history
+MEMORY_FILE = "conversation_memory.json"
 
 # Configure voice for text-to-speech (J.A.R.V.I.S.-like)
 def setup_jarvis_voice():
@@ -46,7 +51,7 @@ setup_jarvis_voice()
 # Names file for assistant and user names
 names_file = "assistant_names.json"
 user_name = ""
-assistant_name = "Captain"
+assistant_name = "CAPTAIN"
 
 # Load saved names
 def load_names():
@@ -55,7 +60,7 @@ def load_names():
         with open(names_file, 'r') as file:
             names = json.load(file)
             user_name = names.get("user_name", "Kush")
-            assistant_name = names.get("assistant_name", "Captain")
+            assistant_name = names.get("assistant_name", "CAPTAIN")
 
 # Save names to file
 def save_names():
@@ -105,10 +110,45 @@ def get_user_input(mode):
         print("Invalid mode. Restart and choose text or voice.")
         return None
 
-# Function to generate AI response
-def generate_response(prompt):
+
+# Function to load past conversation history from file
+def recall_conversation():
     try:
-        response = model.generate_content(prompt)
+        with open(MEMORY_FILE, "r") as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []  # Return an empty list if the file doesn't exist or is empty
+
+# Function to save conversation history to file
+def save_conversation(conversation):
+    with open(MEMORY_FILE, "w") as file:
+        json.dump(conversation, file)
+
+# Function to generate AI response with memory
+def generate_response(user_input):
+    try:
+        # Fetch past conversation history
+        past_conversations = recall_conversation()
+
+        # Ensure the assistant always remembers its name
+        if "who are you" in user_input.lower() or "what is your name" in user_input.lower():
+            return "My name is CAPTAIN, your AI assistant."
+
+        # If user asks "what did I ask you to remember?"
+        if "what did i ask you to remember" in user_input.lower():
+            return "\n".join(past_conversations)  # Return full conversation history
+
+        # Add the current user input to the conversation history
+        past_conversations.append(f"User: {user_input}")
+        save_conversation(past_conversations)  # Save updated history
+
+        # Inject past conversation history into AI prompt
+        full_prompt = f"My name is CAPTAIN. Here is our past conversation:\n{past_conversations}\nNow, you asked: {user_input}"
+
+        response = model.generate_content(full_prompt)  # AI generates response with memory
+        past_conversations.append(f"CAPTAIN: {response.text}")  # Add AI response to history
+        save_conversation(past_conversations)  # Save updated history
+
         return response.text
     except Exception as e:
         return f"Error generating response: {e}"
@@ -166,6 +206,24 @@ def set_alarm(time_str):
         speak("I couldn't understand the time format. Please use the format HH:MM (24-hour clock).")
 
 
+
+# YouTube functionality
+def search_youtube_video(title, max_results=1):
+    try:
+        videos_search = VideosSearch(title, limit=max_results)
+        results = videos_search.result()["result"]
+        if results:
+            video = results[0]
+            return video['link']
+    except Exception as e:
+        return None
+
+def play_youtube_video_by_title(title):
+    video_url = search_youtube_video(title)
+    if video_url:
+        webbrowser.open(video_url)
+        return f"Playing {title} on YouTube."
+    return "Couldn't find the video."
 
 # Function to summarize long text using the Gemini API
 def summarize_long_text():
@@ -282,10 +340,26 @@ def close_application(app_name):
 speak(f"{assistant_name} is ready! How can I help you, {user_name}?")
 mode = input("Use text or voice? (type 'text' or 'voice'): ").strip().lower()
 
+
+
 while True:
     user_input = get_user_input(mode)
     if not user_input:
         continue
+
+    if "who are you" in user_input or "what is your name" in user_input:
+        ai_response = "My name is CAPTAIN, your AI assistant."
+
+
+    # Recall past conversation
+    elif "what did i ask you earlier" in user_input or  "recall our conversation" in user_input:
+        ai_response = recall_conversation()
+
+    else:
+        prompt = f"User: {user_input}\nCAPTAIN:"
+        ai_response = generate_response(prompt)
+
+        
 
     if "set alarm" in user_input:
              try:
@@ -304,6 +378,25 @@ while True:
         speak(song_response)
         print(song_response)
                 
+    elif "play on youtube" in user_input.lower():
+        # Handle "play on YouTube <title>" case
+        parts = user_input.lower().split("play on youtube", 1)
+        if len(parts) > 1 and parts[1].strip():
+            title = parts[1].strip()  # Extract the title after "play on YouTube"
+            print(f"Playing YouTube video: {title}")
+            play_youtube_video_by_title(title)
+        else:
+            print("No title found in the command. Please specify the video title.")
+
+    elif "on youtube" in user_input.lower():
+        # Handle "<title> on YouTube" case
+        parts = user_input.lower().split("on youtube", 1)
+        if len(parts) > 0 and parts[0].strip():
+            title = parts[0].strip()  # Extract the title before "on YouTube"
+            print(f"Playing YouTube video: {title}")
+            play_youtube_video_by_title(title)
+        else:
+            print("No title found before 'on YouTube'. Please specify the video title.")
     elif "launch" in user_input:
         app_name = user_input.replace("launch", "").strip()
         response = open_application(app_name)
@@ -354,3 +447,5 @@ while True:
         ai_response = generate_response(prompt)
         speak(ai_response)
         print(f"Assistant: {ai_response}")
+
+    
