@@ -3,7 +3,7 @@ import os
 import threading
 from ai3 import *  # Import your chatbot code
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 # Route for the chatbot interface
 @app.route("/")
