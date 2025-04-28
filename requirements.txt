@@ -6,3 +6,4 @@ pyautogui
 pytube
 psutil
 flask
+youtube-search-python
