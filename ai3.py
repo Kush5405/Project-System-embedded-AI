@@ -7,7 +7,6 @@ import subprocess
 import datetime
 import webbrowser
 import urllib.parse
-import pyautogui
 import platform
 import os
 from youtubesearchpython import VideosSearch
@@ -257,6 +256,7 @@ def summarize_long_text():
     
 # Function to take a screenshot
 def take_screenshot(save_path="screenshot.png"):
+    import pyautogui
     try:
         pyautogui.screenshot(save_path)
         return f"Screenshot saved as {save_path}."
@@ -274,6 +274,7 @@ def open_file_or_folder_by_name(name):
     Returns:
         str: Success or error message.
     """
+    import pyautogui
     try:
         # Open File Explorer
         pyautogui.hotkey("win", "e")  # Windows + E to open File Explorer
@@ -316,6 +317,7 @@ def open_website(website_name):
 
 # Application management
 def open_application(app_name):
+    import pyautogui
     try:
         pyautogui.hotkey("win", "s")
         time.sleep(1)
